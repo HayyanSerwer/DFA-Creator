@@ -2,28 +2,11 @@ package com.example.dfacreator;
 
 import java.util.*;
 
-public class DFACreator {
-        private final List<String> stateList = new ArrayList<>();
-        private final Set<String> acceptingStates = new HashSet<>();
-        private String startState;
-        private final List<String> alphabet = new ArrayList<>();
+public class DFACreator extends FiniteAutomaton {
+
         private final Map<String, Map<String, String>> transitions = new HashMap<>();
 
-        public void addState(String stateName){
-            stateList.add(stateName);
-        }
 
-        public void setStartState(String stateName){
-            startState = stateName;
-        }
-
-        public void addAcceptingState(String stateName){
-            acceptingStates.add(stateName);
-        }
-
-        public void setAlphabet(String symbol){
-            alphabet.add(symbol);
-        }
         public void addTransition(String from, String symbol, String to) {
             if (!transitions.containsKey(from)) {
                 transitions.put(from, new HashMap<>());
