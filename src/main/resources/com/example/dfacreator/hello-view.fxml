@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.VBox?>
+
+<AnchorPane prefHeight="613.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.dfacreator.DFAController">
+
+
+
+    <VBox alignment="CENTER" layoutX="50.0" layoutY="31.0" prefHeight="226.0" prefWidth="264.0" spacing="15" AnchorPane.leftAnchor="50.0" AnchorPane.topAnchor="31.0">
+        <Label alignment="CENTER" prefHeight="17.0" prefWidth="198.0" text="DFA Settings" />
+        <TextField fx:id="stateNumberField" prefHeight="25.0" prefWidth="200.0" promptText="Number Of States" />
+        <TextField fx:id="startingStateField" prefHeight="25.0" prefWidth="200.0" promptText="Enter the starting State" />
+
+        <HBox alignment="CENTER" prefHeight="34.0" prefWidth="234.0">
+         <children>
+            <ComboBox fx:id="acceptingStatesDropdown" prefHeight="25.0" prefWidth="164.0" promptText="Select Accepting States" />
+            <Button fx:id="addAcceptingButton" onAction="#onAddAccepting" prefHeight="25.0" prefWidth="44.0" text="Add" />
+         </children>
+      </HBox>
+       <Button fx:id="stateCreatorButton" onAction="#onStateCreation" prefHeight="25.0" prefWidth="89.0" text="Create States " />
+
+    </VBox>
+
+    <Pane fx:id="circlePane" layoutX="427.0" layoutY="80.0" prefHeight="439.0" prefWidth="349.0" />
+   <VBox alignment="CENTER" layoutX="79.0" layoutY="289.0" prefHeight="120.0" prefWidth="207.0" spacing="15">
+      <children>
+         <Label alignment="CENTER" prefHeight="17.0" prefWidth="198.0" text="Alphabet And Transitions" />
+         <TextField fx:id="alphabetField" prefHeight="25.0" prefWidth="220.0" promptText="Enter The Alphabet" />
+         <Button fx:id="addAlphabetButton" onAction="#onAddAlphabet" prefHeight="25.0" prefWidth="128.0" text="Add Alphabet" />
+         <HBox alignment="CENTER" prefHeight="34.0" prefWidth="234.0" />
+      </children>
+   </VBox>
+    <HBox fx:id="transitionBox" layoutX="314.0" layoutY="401.0" prefHeight="179.0" prefWidth="427.0" spacing="5">
+           <VBox fx:id="transitionColumns"></VBox>
+    </HBox>
+
+</AnchorPane>
