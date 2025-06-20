@@ -430,46 +430,62 @@ public class DFAController {
 
     @FXML
     protected void onExportDFA() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Save DFA as Text File");
-        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
-        File file = fileChooser.showSaveDialog(circlePane.getScene().getWindow());
+        // Get the current working directory
+        String currentDir = System.getProperty("user.dir");
+        File folder = new File(currentDir, "DFASaves");
 
-        if (file != null) {
-            try (PrintWriter writer = new PrintWriter(file)) {
-                writer.println("States:");
-                for (String state : dfa.getStates()) {
-                    writer.println("  " + state);
-                }
-
-                writer.println("\nAlphabet:");
-                for (String symbol : dfa.getAlphabet()) {
-                    writer.println("  " + symbol);
-                }
-
-                writer.println("\nStart State:");
-                writer.println("  " + dfa.getStartState());
-
-                writer.println("\nAccepting States:");
-                for (String accepting : dfa.getAcceptingStates()) {
-                    writer.println("  " + accepting);
-                }
-
-                writer.println("\nTransitions:");
-                for (Map.Entry<String, Map<String, String>> fromEntry : dfa.getTransitions().entrySet()) {
-                    String fromState = fromEntry.getKey();
-                    for (Map.Entry<String, String> trans : fromEntry.getValue().entrySet()) {
-                        String symbol = trans.getKey();
-                        String toState = trans.getValue();
-                        writer.println("  " + fromState + " --" + symbol + "--> " + toState);
-                    }
-                }
-
-                System.out.println("DFA exported to: " + file.getAbsolutePath());
-            } catch (Exception e) {
-                e.printStackTrace();
+        // Create the folder if it doesn't exist
+        if (!folder.exists()) {
+            boolean created = folder.mkdir();
+            if (!created) {
+                System.out.println("Failed to create DFASaves directory.");
+                return;
             }
         }
+
+        // Find the next available filename DFA1.txt, DFA2.txt, ...
+        int fileIndex = 1;
+        File file;
+        do {
+            file = new File(folder, "DFA" + fileIndex + ".txt");
+            fileIndex++;
+        } while (file.exists());
+
+        try (PrintWriter writer = new PrintWriter(file)) {
+            writer.println("States:");
+            for (String state : dfa.getStates()) {
+                writer.println("  " + state);
+            }
+
+            writer.println("\nAlphabet:");
+            for (String symbol : dfa.getAlphabet()) {
+                writer.println("  " + symbol);
+            }
+
+            writer.println("\nStart State:");
+            writer.println("  " + dfa.getStartState());
+
+            writer.println("\nAccepting States:");
+            for (String accepting : dfa.getAcceptingStates()) {
+                writer.println("  " + accepting);
+            }
+
+            writer.println("\nTransitions:");
+            for (Map.Entry<String, Map<String, String>> fromEntry : dfa.getTransitions().entrySet()) {
+                String fromState = fromEntry.getKey();
+                for (Map.Entry<String, String> trans : fromEntry.getValue().entrySet()) {
+                    String symbol = trans.getKey();
+                    String toState = trans.getValue();
+                    writer.println("  " + fromState + " --" + symbol + "--> " + toState);
+                }
+            }
+
+            System.out.println("DFA exported automatically to: " + file.getAbsolutePath());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
+
+
 
 }
