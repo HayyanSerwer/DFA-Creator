@@ -37,8 +37,11 @@
          <HBox alignment="CENTER" prefHeight="34.0" prefWidth="234.0" />
       </children>
    </VBox>
+    <VBox fx:id="transitionSection" layoutX="314.0" layoutY="401.0" prefHeight="179.0" prefWidth="427.0" spacing="5">
     <HBox fx:id="transitionBox" layoutX="314.0" layoutY="401.0" prefHeight="179.0" prefWidth="427.0" spacing="5">
            <VBox fx:id="transitionColumns"></VBox>
     </HBox>
+    </VBox>
+
 
 </AnchorPane>

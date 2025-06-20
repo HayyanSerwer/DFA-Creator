@@ -6,7 +6,7 @@ public class DFACreator extends FiniteAutomaton {
 
         private final Map<String, Map<String, String>> transitions = new HashMap<>();
 
-
+        @Override
         public void addTransition(String from, String symbol, String to) {
             if (!transitions.containsKey(from)) {
                 transitions.put(from, new HashMap<>());
