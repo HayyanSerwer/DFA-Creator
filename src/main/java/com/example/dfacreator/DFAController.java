@@ -1,6 +1,11 @@
 package com.example.dfacreator;
 
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
@@ -12,8 +17,11 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Polygon;
-import javafx.scene.shape.QuadCurve;
-
+import javafx.stage.Stage;
+import java.io.File;
+import java.io.PrintWriter;
+import javafx.stage.FileChooser;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -41,8 +49,18 @@ public class DFAController {
     @FXML
     private VBox transitionSection;
 
+    // New FXML elements for string testing
+    @FXML
+    private TextField testStringField;
+
+    @FXML
+    private Button testStringButton;
+
+    @FXML
+    private Label testResultLabel;
+
     private final Map<String, Double> stateXPositions = new HashMap<>();
-    private final Map<String, Map<String, Integer>> transitionCounts = new HashMap<>();
+    private final Map<String, Double> stateYPositions = new HashMap<>();
 
     DFACreator dfa = new DFACreator();
     private Map<String, ComboBox<String>> transitionInputs = new HashMap<>();
@@ -58,28 +76,33 @@ public class DFAController {
         return triangle;
     }
 
-    // Create arrow head for curved transitions
-    public Polygon createArrowHead(double x, double y, double angle, double size, Color color) {
-        Polygon arrow = new Polygon();
+    // Create an arrow pointing from (startX, startY) to (endX, endY)
+    public Polygon createDirectionalTriangle(double startX, double startY, double endX, double endY, double size, Color color) {
+        // Calculate direction vector
+        double dx = endX - startX;
+        double dy = endY - startY;
+        double length = Math.sqrt(dx * dx + dy * dy);
 
-        // Calculate arrow points based on angle
-        double arrowLength = size;
-        double arrowWidth = size * 0.6;
+        if (length == 0) return createTriangle(endX, endY, size, color);
 
-        double x1 = x;
-        double y1 = y;
-        double x2 = x - arrowLength * Math.cos(angle - Math.PI/6);
-        double y2 = y - arrowLength * Math.sin(angle - Math.PI/6);
-        double x3 = x - arrowLength * Math.cos(angle + Math.PI/6);
-        double y3 = y - arrowLength * Math.sin(angle + Math.PI/6);
+        // Normalize direction vector
+        dx /= length;
+        dy /= length;
 
-        arrow.getPoints().addAll(x1, y1, x2, y2, x3, y3);
-        arrow.setFill(color);
-        return arrow;
+        // Create triangle pointing in the direction of the line
+        Polygon triangle = new Polygon();
+        triangle.getPoints().addAll(
+                endX, endY,                                    // tip of the triangle
+                endX - size * dx - size * dy / 2, endY - size * dy + size * dx / 2,  // one base corner
+                endX - size * dx + size * dy / 2, endY - size * dy - size * dx / 2   // other base corner
+        );
+        triangle.setFill(color);
+        return triangle;
     }
 
     @FXML
     public void initialize() {
+
         stateNumberField.setOnAction(event -> {
             String input = stateNumberField.getText().trim();
             if (!input.matches("\\d+")) {
@@ -96,6 +119,7 @@ public class DFAController {
 
             System.out.println("Dropdown populated with " + count + " states.");
         });
+
     }
 
     @FXML
@@ -105,13 +129,22 @@ public class DFAController {
         String startingState = startingStateField.getText();
         dfa.setStartState(startingState);
         circlePane.getChildren().clear();
-        transitionCounts.clear();
 
-        double spacing = 90;
+        // Clear previous positions
+        stateXPositions.clear();
+        stateYPositions.clear();
+
+        // Circular arrangement parameters
+        double centerX = 300; // Center of the circle
+        double centerY = 250; // Center of the circle
+        double radius = 150;  // Radius of the circle
 
         for (int i = 0; i < stateNumber; i++) {
-            double x = spacing * i + 50; // Add offset to prevent edge clipping
-            double y = 200;
+            // Calculate position on circle
+            double angle = 2 * Math.PI * i / stateNumber;
+            double x = centerX + radius * Math.cos(angle);
+            double y = centerY + radius * Math.sin(angle);
+
             Circle circle = new Circle(x, y, 20);
             circle.setStyle("-fx-fill: lightblue; -fx-stroke: black; -fx-stroke-width: 2;");
             Label label = new Label("Q" + i);
@@ -119,7 +152,10 @@ public class DFAController {
             label.setLayoutY(y - 8);
             circlePane.getChildren().addAll(circle, label);
             dfa.addState(label.getText());
+
+            // Store positions for later use
             stateXPositions.put("Q" + i, x);
+            stateYPositions.put("Q" + i, y);
         }
 
         // Drawing the outer circles for the accepting states
@@ -127,18 +163,27 @@ public class DFAController {
         ArrayList<String> acceptingArrayList = new ArrayList<>();
         acceptingArrayList.addAll(acceptingStates);
         for (int j = 0; j < dfa.getAcceptingStates().size(); j++) {
-            int statevalue = Integer.parseInt(acceptingArrayList.get(j).substring(1));
-            double x = spacing * statevalue + 50;
-            Circle circle = new Circle(x, 200, 25);
+            String stateName = acceptingArrayList.get(j);
+            double x = stateXPositions.get(stateName);
+            double y = stateYPositions.get(stateName);
+            Circle circle = new Circle(x, y, 25);
             circle.setStyle("-fx-fill: transparent; -fx-stroke: black; -fx-stroke-width: 2;");
             circlePane.getChildren().addAll(circle);
         }
 
-        if (startingState != null) {
-            int positionNumber = Integer.parseInt(startingState.substring(1));
-            double x = spacing * positionNumber + 50;
-            Line startingArrowLine = new Line(x - 50, 200, x - 20, 200);
-            Polygon startArrow = createTriangle(x - 20, 200, 10, Color.BLACK);
+        // Draw starting state arrow
+        if (startingState != null && stateXPositions.containsKey(startingState)) {
+            double stateX = stateXPositions.get(startingState);
+            double stateY = stateYPositions.get(startingState);
+
+            // Calculate arrow start position (50 pixels away from state center)
+            double arrowStartX = stateX - 50;
+            double arrowStartY = stateY;
+            double arrowEndX = stateX - 20;
+            double arrowEndY = stateY;
+
+            Line startingArrowLine = new Line(arrowStartX, arrowStartY, arrowEndX, arrowEndY);
+            Polygon startArrow = createDirectionalTriangle(arrowStartX, arrowStartY, arrowEndX, arrowEndY, 10, Color.BLACK);
             circlePane.getChildren().addAll(startingArrowLine, startArrow);
         }
     }
@@ -208,9 +253,6 @@ public class DFAController {
     private void onAddTransitions() {
         System.out.println("Drawing transitions...");
 
-        // Clear existing transition counts
-        transitionCounts.clear();
-
         for (Map.Entry<String, ComboBox<String>> entry : transitionInputs.entrySet()) {
             String key = entry.getKey();
             ComboBox<String> dropdown = entry.getValue();
@@ -222,118 +264,212 @@ public class DFAController {
             String fromState = parts[0];
             String symbol = parts[1];
 
+            // Adding the transitions to the u DFACreator class so I can use DFASimulation to test the DFA
+            dfa.addTransition(fromState, symbol, targetState);
+
             if (!stateXPositions.containsKey(fromState) || !stateXPositions.containsKey(targetState))
                 continue;
 
-            // Track transitions between states to avoid overlap
-            String transitionKey = fromState + "->" + targetState;
-            transitionCounts.putIfAbsent(fromState, new HashMap<>());
-            int currentCount = transitionCounts.get(fromState).getOrDefault(targetState, 0);
-            transitionCounts.get(fromState).put(targetState, currentCount + 1);
-
             double startX = stateXPositions.get(fromState);
+            double startY = stateYPositions.get(fromState);
             double endX = stateXPositions.get(targetState);
-            double y = 200;
+            double endY = stateYPositions.get(targetState);
 
             if (fromState.equals(targetState)) {
                 // Draw self-loop
-                drawSelfLoop(startX, y, symbol, currentCount);
+                double loopCenterX = startX;
+                double loopCenterY = startY - 40;
+                Circle loop = new Circle(loopCenterX, loopCenterY, 15);
+                loop.setStroke(Color.BLACK);
+                loop.setFill(Color.TRANSPARENT);
+                loop.setStrokeWidth(2);
+
+                // Add small arrow to show direction
+                Polygon loopArrow = createTriangle(loopCenterX + 15, loopCenterY, 6, Color.BLACK);
+
+                Label label = new Label(symbol);
+                label.setLayoutX(loopCenterX - 5);
+                label.setLayoutY(loopCenterY - 25);
+                label.setStyle("-fx-font-weight: bold; -fx-background-color: white; -fx-padding: 2;");
+
+                circlePane.getChildren().addAll(loop, loopArrow, label);
             } else {
-                // Draw curved transition
-                drawCurvedTransition(startX, y, endX, y, symbol, currentCount);
+                // Calculate line endpoints on circle edges (not centers)
+                double dx = endX - startX;
+                double dy = endY - startY;
+                double distance = Math.sqrt(dx * dx + dy * dy);
+
+                // Normalize direction vector
+                double unitX = dx / distance;
+                double unitY = dy / distance;
+
+                // Adjust start and end points to circle edges (radius = 20)
+                double lineStartX = startX + 20 * unitX;
+                double lineStartY = startY + 20 * unitY;
+                double lineEndX = endX - 20 * unitX;
+                double lineEndY = endY - 20 * unitY;
+
+                // Draw line
+                Line line = new Line(lineStartX, lineStartY, lineEndX, lineEndY);
+                line.setStrokeWidth(2);
+
+                // Create directional arrow
+                Polygon arrow = createDirectionalTriangle(lineStartX, lineStartY, lineEndX, lineEndY, 8, Color.BLACK);
+
+                // Position label at midpoint of the line
+                double labelX = (lineStartX + lineEndX) / 2;
+                double labelY = (lineStartY + lineEndY) / 2;
+
+                Label label = new Label(symbol);
+                label.setLayoutX(labelX - 10);
+                label.setLayoutY(labelY - 15);
+                label.setStyle("-fx-font-weight: bold; -fx-background-color: white; -fx-padding: 2; -fx-border-color: lightgray; -fx-border-width: 1;");
+
+                circlePane.getChildren().addAll(line, arrow, label);
             }
         }
     }
 
-    private void drawSelfLoop(double centerX, double centerY, String symbol, int loopIndex) {
-        double loopRadius = 25 + (loopIndex * 15); // Increase radius for multiple loops
-        double loopCenterY = centerY - loopRadius - 20;
+    // New method for testing strings
+    @FXML
+    protected void onTestString() {
+        String testString = testStringField.getText().trim();
 
-        Circle loop = new Circle(centerX, loopCenterY, loopRadius);
-        loop.setStroke(Color.BLACK);
-        loop.setStrokeWidth(2);
-        loop.setFill(Color.TRANSPARENT);
+        // Check if DFA is properly set up
+        if (dfa.getStartState() == null || dfa.getStartState().isEmpty()) {
+            testResultLabel.setText("Error: No start state defined!");
+            testResultLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+            return;
+        }
 
-        // Arrow for self-loop
-        double arrowX = centerX + loopRadius * Math.cos(Math.PI / 4);
-        double arrowY = loopCenterY + loopRadius * Math.sin(Math.PI / 4);
-        Polygon arrow = createArrowHead(arrowX, arrowY, Math.PI / 4 + Math.PI / 2, 8, Color.BLACK);
+        if (dfa.getAlphabet().isEmpty()) {
+            testResultLabel.setText("Error: No alphabet defined!");
+            testResultLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+            return;
+        }
 
-        // Label positioned above the loop
-        Label label = new Label(symbol);
-        label.setLayoutX(centerX - 5);
-        label.setLayoutY(loopCenterY - loopRadius - 15);
-        label.setStyle("-fx-font-weight: bold; -fx-background-color: white; -fx-padding: 2;");
+        if (dfa.getTransitions().isEmpty()) {
+            testResultLabel.setText("Error: No transitions defined!");
+            testResultLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+            return;
+        }
 
-        circlePane.getChildren().addAll(loop, arrow, label);
+        // Create DFA simulation and test the string
+        DFASimulation simulation = new DFASimulation(dfa);
+        String result = testStringWithResult(testString);
+
+        // Display result in the label
+        if (result.startsWith("Accepted")) {
+            testResultLabel.setText("✓ " + result);
+            testResultLabel.setStyle("-fx-text-fill: green; -fx-font-weight: bold;");
+        } else {
+            testResultLabel.setText("✗ " + result);
+            testResultLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+        }
     }
 
-    private void drawCurvedTransition(double startX, double startY, double endX, double endY, String symbol, int curveIndex) {
-        // Calculate the base curve
-        double midX = (startX + endX) / 2;
-        double midY = (startY + endY) / 2;
+    // Helper method that returns the result as a string instead of printing
+    private String testStringWithResult(String test) {
+        String currentState = dfa.getStartState();
 
-        // Calculate perpendicular offset for curve
-        double dx = endX - startX;
-        double dy = endY - startY;
-        double length = Math.sqrt(dx * dx + dy * dy);
+        for (int i = 0; i < test.length(); i++) {
+            String symbol = String.valueOf(test.charAt(i));
 
-        if (length == 0) return; // Avoid division by zero
+            if (!dfa.getAlphabet().contains(symbol)) {
+                return "Invalid symbol '" + symbol + "' at position " + i;
+            }
 
-        // Normalize perpendicular vector
-        double perpX = -dy / length;
-        double perpY = dx / length;
+            Map<String, String> transitionFromCurrent = dfa.getTransitions().get(currentState);
+            if (transitionFromCurrent == null || !transitionFromCurrent.containsKey(symbol)) {
+                return "No transition from " + currentState + " on '" + symbol + "'";
+            }
 
-        // Offset amount based on curve index (for multiple transitions between same states)
-        double offset = 40 + (curveIndex * 30);
-        if (curveIndex % 2 == 1) offset = -offset; // Alternate curve direction
+            currentState = transitionFromCurrent.get(symbol);
+        }
 
-        double controlX = midX + perpX * offset;
-        double controlY = midY + perpY * offset;
-
-        // Adjust start and end points to account for circle radius
-        double circleRadius = 20;
-        double angle = Math.atan2(dy, dx);
-
-        double adjustedStartX = startX + circleRadius * Math.cos(angle);
-        double adjustedStartY = startY + circleRadius * Math.sin(angle);
-        double adjustedEndX = endX - circleRadius * Math.cos(angle);
-        double adjustedEndY = endY - circleRadius * Math.sin(angle);
-
-        // Create quadratic curve
-        QuadCurve curve = new QuadCurve();
-        curve.setStartX(adjustedStartX);
-        curve.setStartY(adjustedStartY);
-        curve.setControlX(controlX);
-        curve.setControlY(controlY);
-        curve.setEndX(adjustedEndX);
-        curve.setEndY(adjustedEndY);
-        curve.setStroke(Color.BLACK);
-        curve.setStrokeWidth(2);
-        curve.setFill(Color.TRANSPARENT);
-
-        // Calculate arrow position and angle at the end of the curve
-        double t = 0.9; // Position along curve for arrow (90% of the way)
-        double arrowX = Math.pow(1-t, 2) * adjustedStartX + 2*(1-t)*t * controlX + t*t * adjustedEndX;
-        double arrowY = Math.pow(1-t, 2) * adjustedStartY + 2*(1-t)*t * controlY + t*t * adjustedEndY;
-
-        // Calculate tangent angle at arrow position
-        double tangentX = 2*(1-t) * (controlX - adjustedStartX) + 2*t * (adjustedEndX - controlX);
-        double tangentY = 2*(1-t) * (controlY - adjustedStartY) + 2*t * (adjustedEndY - controlY);
-        double arrowAngle = Math.atan2(tangentY, tangentX);
-
-        Polygon arrow = createArrowHead(arrowX, arrowY, arrowAngle, 8, Color.BLACK);
-
-        // Position label at the middle of the curve
-        t = 0.5;
-        double labelX = Math.pow(1-t, 2) * adjustedStartX + 2*(1-t)*t * controlX + t*t * adjustedEndX;
-        double labelY = Math.pow(1-t, 2) * adjustedStartY + 2*(1-t)*t * controlY + t*t * adjustedEndY;
-
-        Label label = new Label(symbol);
-        label.setLayoutX(labelX - 5);
-        label.setLayoutY(labelY - 10);
-        label.setStyle("-fx-font-weight: bold; -fx-background-color: white; -fx-padding: 2; -fx-border-color: lightgray; -fx-border-width: 1;");
-
-        circlePane.getChildren().addAll(curve, arrow, label);
+        if (dfa.getAcceptingStates().contains(currentState)) {
+            return "Accepted! Final state: " + currentState;
+        } else {
+            return "Rejected. Final state: " + currentState + " is not accepting.";
+        }
     }
+
+    @FXML
+    protected void onClearCanvas() {
+        circlePane.getChildren().clear();
+
+        stateXPositions.clear();
+        stateYPositions.clear();
+
+        transitionInputs.clear();
+
+        dfa = new DFACreator();
+
+        stateNumberField.clear();
+        startingStateField.clear();
+        alphabetField.clear();
+        testStringField.clear();
+        testResultLabel.setText("");
+
+        System.out.println("Canvas and DFA cleared successfully.");
+    }
+    private Stage stage;
+    private Scene scene;
+    private Parent root;
+
+
+    @FXML
+    protected void onDFAHistory(ActionEvent event) throws IOException {
+        root = FXMLLoader.load(getClass().getResource("DFA-history.fxml"));
+        stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        scene = new Scene(root);
+        stage.setScene(scene);
+        stage.show();
+    }
+
+
+    @FXML
+    protected void onExportDFA() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save DFA as Text File");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Text Files", "*.txt"));
+        File file = fileChooser.showSaveDialog(circlePane.getScene().getWindow());
+
+        if (file != null) {
+            try (PrintWriter writer = new PrintWriter(file)) {
+                writer.println("States:");
+                for (String state : dfa.getStates()) {
+                    writer.println("  " + state);
+                }
+
+                writer.println("\nAlphabet:");
+                for (String symbol : dfa.getAlphabet()) {
+                    writer.println("  " + symbol);
+                }
+
+                writer.println("\nStart State:");
+                writer.println("  " + dfa.getStartState());
+
+                writer.println("\nAccepting States:");
+                for (String accepting : dfa.getAcceptingStates()) {
+                    writer.println("  " + accepting);
+                }
+
+                writer.println("\nTransitions:");
+                for (Map.Entry<String, Map<String, String>> fromEntry : dfa.getTransitions().entrySet()) {
+                    String fromState = fromEntry.getKey();
+                    for (Map.Entry<String, String> trans : fromEntry.getValue().entrySet()) {
+                        String symbol = trans.getKey();
+                        String toState = trans.getValue();
+                        writer.println("  " + fromState + " --" + symbol + "--> " + toState);
+                    }
+                }
+
+                System.out.println("DFA exported to: " + file.getAbsolutePath());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
 }

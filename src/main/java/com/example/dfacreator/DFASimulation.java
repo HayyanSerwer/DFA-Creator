@@ -3,9 +3,12 @@ package com.example.dfacreator;
 import java.util.Map;
 
 public class DFASimulation {
-    DFACreator dfa1 = new DFACreator();
+    DFACreator dfa1;
+    public DFASimulation(DFACreator dfa){
+        dfa1 = dfa;
+    }
     public void TestString(String test) {
-        String currentState = dfa1.startState;
+        String currentState = dfa1.getStartState();
 
         for (int i = 0; i < test.length(); i++) {
             String symbol = String.valueOf(test.charAt(i));
