@@ -130,17 +130,14 @@ public class DFAController {
         dfa.setStartState(startingState);
         circlePane.getChildren().clear();
 
-        // Clear previous positions
         stateXPositions.clear();
         stateYPositions.clear();
 
-        // Circular arrangement parameters
-        double centerX = 300; // Center of the circle
-        double centerY = 250; // Center of the circle
-        double radius = 150;  // Radius of the circle
+        double centerX = 300;
+        double centerY = 250;
+        double radius = 150;
 
         for (int i = 0; i < stateNumber; i++) {
-            // Calculate position on circle
             double angle = 2 * Math.PI * i / stateNumber;
             double x = centerX + radius * Math.cos(angle);
             double y = centerY + radius * Math.sin(angle);
@@ -153,12 +150,11 @@ public class DFAController {
             circlePane.getChildren().addAll(circle, label);
             dfa.addState(label.getText());
 
-            // Store positions for later use
+            // Store positions for later use, (note they are also used right now for the creation of the accepting circles)
             stateXPositions.put("Q" + i, x);
             stateYPositions.put("Q" + i, y);
         }
 
-        // Drawing the outer circles for the accepting states
         Set<String> acceptingStates = dfa.getAcceptingStates();
         ArrayList<String> acceptingArrayList = new ArrayList<>();
         acceptingArrayList.addAll(acceptingStates);
@@ -330,7 +326,7 @@ public class DFAController {
         }
     }
 
-    // New method for testing strings
+
     @FXML
     protected void onTestString() {
         String testString = testStringField.getText().trim();
@@ -354,9 +350,9 @@ public class DFAController {
             return;
         }
 
-        // Create DFA simulation and test the string
+        // Create DFA simulation and actually USE it to test the string
         DFASimulation simulation = new DFASimulation(dfa);
-        String result = testStringWithResult(testString);
+        String result = simulation.testString(testString);
 
         // Display result in the label
         if (result.startsWith("Accepted")) {
@@ -365,32 +361,6 @@ public class DFAController {
         } else {
             testResultLabel.setText("✗ " + result);
             testResultLabel.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
-        }
-    }
-
-    // Helper method that returns the result as a string instead of printing
-    private String testStringWithResult(String test) {
-        String currentState = dfa.getStartState();
-
-        for (int i = 0; i < test.length(); i++) {
-            String symbol = String.valueOf(test.charAt(i));
-
-            if (!dfa.getAlphabet().contains(symbol)) {
-                return "Invalid symbol '" + symbol + "' at position " + i;
-            }
-
-            Map<String, String> transitionFromCurrent = dfa.getTransitions().get(currentState);
-            if (transitionFromCurrent == null || !transitionFromCurrent.containsKey(symbol)) {
-                return "No transition from " + currentState + " on '" + symbol + "'";
-            }
-
-            currentState = transitionFromCurrent.get(symbol);
-        }
-
-        if (dfa.getAcceptingStates().contains(currentState)) {
-            return "Accepted! Final state: " + currentState;
-        } else {
-            return "Rejected. Final state: " + currentState + " is not accepting.";
         }
     }
 
@@ -437,7 +407,7 @@ public class DFAController {
         // Create the folder if it doesn't exist
         if (!folder.exists()) {
             boolean created = folder.mkdir();
-            if (!created) {
+            if (!created) { 
                 System.out.println("Failed to create DFASaves directory.");
                 return;
             }

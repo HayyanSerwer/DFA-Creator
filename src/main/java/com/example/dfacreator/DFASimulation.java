@@ -3,33 +3,39 @@ package com.example.dfacreator;
 import java.util.Map;
 
 public class DFASimulation {
-    DFACreator dfa1;
+    private DFACreator dfa;
+
     public DFASimulation(DFACreator dfa){
-        dfa1 = dfa;
+        this.dfa = dfa;
     }
+
     public void TestString(String test) {
-        String currentState = dfa1.getStartState();
+        String result = testString(test);
+        System.out.println(result);
+    }
+
+    public String testString(String test) {
+        String currentState = dfa.getStartState();
 
         for (int i = 0; i < test.length(); i++) {
             String symbol = String.valueOf(test.charAt(i));
 
-            if (!dfa1.getAlphabet().contains(symbol)) {
-                System.out.println("Invalid symbol '" + symbol + "' at position " + i);
-                return;
+            if (!dfa.getAlphabet().contains(symbol)) {
+                return "Invalid symbol '" + symbol + "' at position " + i;
             }
-            Map<String, String> transitionFromCurrent = dfa1.getTransitions().get(currentState);
-            if (!transitionFromCurrent.containsKey(symbol)){ // Pretty sure this would only happen in an NFA but ill leave it in
-                System.out.println("No transition from " + currentState + " on " + symbol);
-                return;
+
+            Map<String, String> transitionFromCurrent = dfa.getTransitions().get(currentState);
+            if (transitionFromCurrent == null || !transitionFromCurrent.containsKey(symbol)) {
+                return "No transition from " + currentState + " on '" + symbol + "'";
             }
+
             currentState = transitionFromCurrent.get(symbol);
         }
 
-        if (dfa1.acceptingStates.contains(currentState)) {
-            System.out.println("Accepted! Final state: " + currentState);
+        if (dfa.getAcceptingStates().contains(currentState)) {
+            return "Accepted! Final state: " + currentState;
         } else {
-            System.out.println("Rejected. Final state: " + currentState + " is not accepting.");
+            return "Rejected. Final state: " + currentState + " is not accepting.";
         }
-
     }
 }
