@@ -43,6 +43,7 @@ Use the "DFA History" button to navigate to the history scene (DFA-history.fxml)
 Click Clear Canvas to reset the canvas and DFA configuration.
 
 ## Example Export File
+```text
 States:
   Q0
   Q1
@@ -62,3 +63,4 @@ Transitions:
   Q0 --b--> Q0
   Q1 --a--> Q0
   Q1 --b--> Q1
+```
